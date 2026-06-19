@@ -1,0 +1,186 @@
+/**
+ * Layout styles
+ */
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 4rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--text);
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+}
+
+.logo-text {
+  background: linear-gradient(135deg, var(--primary), #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.nav-link {
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.nav-link:hover {
+  color: var(--primary);
+}
+
+.nav-link.primary {
+  background-color: var(--primary);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-lg);
+  border-radius: var(--radius-md);
+}
+
+.nav-link.primary:hover {
+  background-color: var(--primary-dark);
+  color: white;
+}
+
+/* Error Banner */
+.error-banner {
+  background-color: #fee2e2;
+  border-bottom: 1px solid #fecaca;
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  color: #991b1b;
+  font-weight: 500;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: #991b1b;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.error-close:hover {
+  opacity: 0.7;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Footer */
+.footer {
+  background-color: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.footer a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.footer a:hover {
+  color: var(--primary-dark);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-content {
+    padding: 0 var(--spacing-md);
+    height: 3.5rem;
+  }
+
+  .logo {
+    gap: var(--spacing-sm);
+    font-size: 1rem;
+  }
+
+  .logo-icon {
+    font-size: 1.25rem;
+  }
+
+  .nav {
+    gap: var(--spacing-md);
+  }
+
+  .nav-link {
+    font-size: 0.875rem;
+  }
+
+  .nav-link.primary {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .main-content {
+    padding: var(--spacing-lg);
+  }
+
+  .error-banner {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .error-content {
+    width: 100%;
+  }
+
+  .error-close {
+    align-self: flex-start;
+  }
+}
