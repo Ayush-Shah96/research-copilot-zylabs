@@ -17,7 +17,7 @@ function Layout({ children, error, setError }) {
             <span className="logo-icon">🔍</span>
             <span className="logo-text">Research Copilot</span>
           </Link>
-          
+
           <nav className="nav">
             <Link to="/" className="nav-link">Home</Link>
             <Link to="/create" className="nav-link primary">
@@ -54,7 +54,7 @@ function Layout({ children, error, setError }) {
       <footer className="footer">
         <p>
           AI Research Copilot • Built with React & FastAPI •{' '}
-          <a href="#" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer">
             GitHub
           </a>
         </p>
