@@ -22,9 +22,13 @@ class ResearchState(TypedDict, total=False):
     raw_research_data: Dict[str, Any]
     company_info: Dict[str, str]
     website_content: Optional[str]
+    products_info: str
+    customers_info: str
+    competitors_info: str
     news_articles: List[Dict[str, str]]
     social_media_data: Dict[str, Any]
     industry_data: Dict[str, Any]
+    financial_data: Dict[str, Any]
     
     # Analysis Node Output
     analyzed_overview: str
@@ -33,6 +37,8 @@ class ResearchState(TypedDict, total=False):
     analyzed_signals: str
     analyzed_risks: str
     key_insights: List[str]
+    opportunities: List[str]
+    competitive_advantages: List[str]
     
     # Quality Check Node Output
     quality_score: int
@@ -40,6 +46,8 @@ class ResearchState(TypedDict, total=False):
     requires_retry: bool
     retry_reason: Optional[str]
     quality_checks_passed: Dict[str, bool]
+    confidence_score: float
+    completeness_percentage: int
     
     # Reporter Node Output
     discovery_questions: List[Dict[str, str]]
@@ -57,6 +65,7 @@ class ResearchState(TypedDict, total=False):
     error_message: Optional[str]
     retry_count: int
     max_retries: int
+    token_usage: Dict[str, int]
 
 
 @dataclass

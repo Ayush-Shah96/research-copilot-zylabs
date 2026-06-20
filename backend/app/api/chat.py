@@ -73,7 +73,7 @@ async def send_chat_message(
         db.refresh(user_message)
         
         # Generate assistant response based on report context
-        response_content = generate_chat_response(request.content, report)
+        response_content = generate_chat_response(request.content, report, session, db)
         
         # Save assistant message
         assistant_message = ChatMessage(
@@ -233,72 +233,103 @@ async def clear_chat_history(
         raise HTTPException(status_code=500, detail="Failed to clear chat history")
 
 
-def generate_chat_response(user_message: str, report: ResearchReport) -> str:
+def generate_chat_response(user_message: str, report: ResearchReport, session: ResearchSession, db: Session) -> str:
     """
-    Generate an intelligent response based on the research report.
-    
-    In production, this would use an LLM with report context.
+    Generate an intelligent response using LLM with report context.
     
     Args:
         user_message: User's question
         report: Research report for context
+        session: Research session
+        db: Database session
         
     Returns:
-        Response from the copilot
+        Response from the copilot powered by LLM
     """
-    message_lower = user_message.lower()
+    import json
+    from app.services.llm import get_llm_service
+    from app.services.prompts import PromptsService
     
-    # Simple pattern matching for demo purposes
-    if any(word in message_lower for word in ["product", "service"]):
-        return (
-            f"Based on our research, {report.session_id[:8]}'s main offerings include: "
-            f"{report.products_services or 'Information pending'}. "
-            f"Would you like to know more about their specific use cases?"
+    logger.info(f"Generating chat response for session {session.id}")
+    
+    try:
+        llm = get_llm_service()
+        
+        # Build research context from report
+        research_context = f"""
+COMPANY: {session.company_name}
+WEBSITE: {session.company_website or 'Not provided'}
+
+OVERVIEW:
+{report.company_overview or 'Information not available'}
+
+PRODUCTS & SERVICES:
+{report.products_services or 'Information not available'}
+
+TARGET CUSTOMERS:
+{report.target_customers or 'Information not available'}
+
+BUSINESS SIGNALS:
+{report.business_signals or 'Information not available'}
+
+RISKS & CHALLENGES:
+{report.risks_challenges or 'Information not available'}
+
+DISCOVERY QUESTIONS:
+{json.dumps(report.discovery_questions or [], indent=2)}
+
+OUTREACH STRATEGY:
+{report.outreach_strategy or 'Information not available'}
+
+SOURCES:
+{', '.join(report.sources or [])}
+"""
+        
+        # Get previous messages for context (last 5)
+        previous_messages = db.query(ChatMessage).filter(
+            ChatMessage.session_id == session.id,
+            ChatMessage.role.in_(["user", "assistant"])
+        ).order_by(ChatMessage.created_at.desc()).limit(5).all()
+        
+        # Reverse to get chronological order
+        previous_messages.reverse()
+        
+        # Build message list
+        msg_list = []
+        for msg in previous_messages:
+            msg_list.append({
+                "role": msg.role,
+                "content": msg.content,
+            })
+        
+        # Get system and user prompts from service
+        system_prompt = PromptsService.get_chat_system_prompt(
+            session.company_name,
+            research_context,
         )
-    
-    elif any(word in message_lower for word in ["customer", "target", "market"]):
-        return (
-            f"Our research indicates that the target customers are: "
-            f"{report.target_customers or 'Information pending'}. "
-            f"This is valuable information for crafting your outreach strategy."
+        
+        user_prompt = PromptsService.get_chat_response_prompt(
+            user_message,
+            research_context,
         )
-    
-    elif any(word in message_lower for word in ["risk", "challenge", "concern"]):
-        return (
-            f"Key risks and challenges we identified: "
-            f"{report.risks_challenges or 'No major risks identified'}. "
-            f"Consider these in your sales approach."
+        
+        # Call LLM with context
+        response = llm.chat(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            previous_messages=msg_list if msg_list else None,
+            temperature=0.7,
+            max_tokens=1500,
         )
-    
-    elif any(word in message_lower for word in ["signal", "growth", "momentum"]):
+        
+        logger.info("Chat response generated successfully from LLM")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error generating chat response: {str(e)}")
+        # Fallback to template response
         return (
-            f"Positive business signals include: "
-            f"{report.business_signals or 'Steady market presence'}. "
-            f"This suggests good timing for outreach."
-        )
-    
-    elif any(word in message_lower for word in ["question", "discover"]):
-        if report.discovery_questions:
-            questions = ", ".join([q.get("question", "") for q in report.discovery_questions[:3]])
-            return f"Great discovery questions to ask: {questions}"
-        return "Prepare questions that uncover their specific needs and challenges."
-    
-    elif any(word in message_lower for word in ["outreach", "approach", "strategy"]):
-        return (
-            f"Recommended approach: {report.outreach_strategy or 'Start with a personalized introduction highlighting relevant insights'}. "
-            f"Focus on value and relevance to their business."
-        )
-    
-    elif any(word in message_lower for word in ["unknown", "missing", "gap"]):
-        if report.unknowns:
-            unknowns = ", ".join(report.unknowns[:3])
-            return f"Information gaps we identified: {unknowns}. You may want to explore these during initial conversations."
-        return "We have comprehensive coverage of available public information."
-    
-    else:
-        # Generic response
-        return (
-            f"Based on our comprehensive research of the company, I can help you prepare for your meeting. "
-            f"Feel free to ask about their products, market position, customers, risks, or recommended outreach strategy. "
+            f"Based on our comprehensive research of {session.company_name}, I'm here to help you prepare. "
+            f"I can answer questions about their products, market position, customers, risks, or recommended outreach strategy. "
             f"What would you like to know more about?"
         )

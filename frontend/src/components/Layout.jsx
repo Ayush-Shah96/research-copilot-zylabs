@@ -15,11 +15,11 @@ function Layout({ children, error, setError }) {
         <div className="header-content">
           <Link to="/" className="logo">
             <span className="logo-icon">🔍</span>
-            <span className="logo-text">Research Copilot</span>
+            <span className="logo-text">ResearchCopilot</span>
           </Link>
 
           <nav className="nav">
-            <Link to="/" className="nav-link">Home</Link>
+            <Link to="/" className="nav-link">Dashboard</Link>
             <Link to="/create" className="nav-link primary">
               + New Research
             </Link>
@@ -37,6 +37,7 @@ function Layout({ children, error, setError }) {
           <button
             className="error-close"
             onClick={() => setError(null)}
+            aria-label="Close error"
           >
             <X size={20} />
           </button>
@@ -53,9 +54,9 @@ function Layout({ children, error, setError }) {
       {/* Footer */}
       <footer className="footer">
         <p>
-          AI Research Copilot • Built with React & FastAPI •{' '}
+          AI Research Copilot • Production-Grade Full Stack Application •{' '}
           <a href="https://github.com" target="_blank" rel="noopener noreferrer">
-            GitHub
+            GitHub Repo
           </a>
         </p>
       </footer>

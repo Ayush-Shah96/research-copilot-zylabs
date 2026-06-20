@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSession, useWorkflow, useChat } from '../hooks';
-import { Play, RotateCcw, ArrowLeft } from 'lucide-react';
+import { Play, RotateCcw, ArrowLeft, Send, Zap } from 'lucide-react';
 import '../styles/pages.css';
 
 function SessionDetailPage() {
@@ -16,6 +16,7 @@ function SessionDetailPage() {
   const { messages, sendMessage: sendChatMessage } = useChat(sessionId);
   const [loading, setLoading] = useState(true);
   const [chatInput, setChatInput] = useState('');
+  const [progressInterval, setProgressInterval] = useState(null);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -35,7 +36,7 @@ function SessionDetailPage() {
       const interval = setInterval(() => {
         fetchSessionDetail(sessionId);
       }, 2000);
-      return () => clearInterval(interval);
+      setProgressInterval(interval);
     } catch (err) {
       alert('Failed to start workflow: ' + err.message);
     }
@@ -61,6 +62,12 @@ function SessionDetailPage() {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (progressInterval) clearInterval(progressInterval);
+    };
+  }, [progressInterval]);
+
   if (loading) {
     return (
       <div className="page">
@@ -78,7 +85,7 @@ function SessionDetailPage() {
         <div className="error-state">
           <p>Session not found</p>
           <button className="btn btn-primary" onClick={() => navigate('/')}>
-            Back to Home
+            Back to Dashboard
           </button>
         </div>
       </div>
@@ -90,14 +97,17 @@ function SessionDetailPage() {
       {/* Header */}
       <div className="page-header">
         <button className="btn-back" onClick={() => navigate('/')}>
-          <ArrowLeft size={20} />
+          <ArrowLeft size={24} />
         </button>
-        <div>
+        <div style={{ flex: 1 }}>
           <h1>{currentSession.company_name}</h1>
           <p>{currentSession.research_objective}</p>
         </div>
         <span className={`status status-${currentSession.status}`}>
-          {currentSession.status}
+          {currentSession.status === 'completed' && '✓ Completed'}
+          {currentSession.status === 'running' && '⟳ Running'}
+          {currentSession.status === 'pending' && '○ Pending'}
+          {currentSession.status === 'failed' && '✕ Failed'}
         </span>
       </div>
 
@@ -105,11 +115,12 @@ function SessionDetailPage() {
       <div className="session-grid">
         {/* Research Section */}
         <section className="section research-section">
-          <h2>Research Progress</h2>
+          <h2>Research Workflow</h2>
 
           {currentSession.status === 'pending' && (
             <div className="research-ready">
-              <p>Ready to start research</p>
+              <Zap size={40} style={{ color: 'var(--primary)' }} />
+              <p>Ready to launch research</p>
               <button
                 className="btn btn-primary"
                 onClick={handleStartWorkflow}
@@ -122,34 +133,40 @@ function SessionDetailPage() {
 
           {currentSession.status === 'running' && (
             <div className="research-progress">
+              <p style={{ textAlign: 'center', marginBottom: 'var(--spacing-md)' }}>
+                {progress?.message || 'Processing research...'}
+              </p>
               <div className="progress-bar">
                 <div
                   className="progress-fill"
-                  style={{ width: progress?.progress_percentage || 0 + '%' }}
+                  style={{ width: (progress?.progress_percentage || 0) + '%' }}
                 ></div>
               </div>
-              <p>{progress?.message || 'Processing...'}</p>
-              <small>
-                Step {progress?.steps_completed || 0} of {progress?.total_steps || 5}
-              </small>
+              <div style={{ marginTop: 'var(--spacing-lg)', textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  Step {progress?.steps_completed || 0} of {progress?.total_steps || 5}
+                </p>
+              </div>
             </div>
           )}
 
           {currentSession.status === 'completed' && (
             <div className="research-complete">
-              <p>✓ Research completed successfully</p>
+              <span style={{ fontSize: '2rem' }}>✓</span>
+              <p>Research completed successfully!</p>
             </div>
           )}
 
           {currentSession.status === 'failed' && (
             <div className="research-failed">
-              <p>✗ Research failed: {currentSession.error_message}</p>
+              <span style={{ fontSize: '2rem' }}>✕</span>
+              <p>{currentSession.error_message}</p>
               <button
                 className="btn btn-secondary"
                 onClick={handleRetry}
               >
                 <RotateCcw size={18} />
-                Retry
+                Retry Research
               </button>
             </div>
           )}
@@ -182,12 +199,24 @@ function SessionDetailPage() {
                 </div>
               )}
 
-              {currentSession.report.discovery_questions && (
+              {currentSession.report.business_signals && (
                 <div className="report-item">
-                  <h3>Discovery Questions</h3>
+                  <h3>Business Signals</h3>
+                  <p>{currentSession.report.business_signals}</p>
+                </div>
+              )}
+
+              {currentSession.report.discovery_questions && currentSession.report.discovery_questions.length > 0 && (
+                <div className="report-item">
+                  <h3>Key Discovery Questions</h3>
                   <ul>
-                    {currentSession.report.discovery_questions.map((q, i) => (
-                      <li key={i}>{q.question}</li>
+                    {currentSession.report.discovery_questions.slice(0, 3).map((q, i) => (
+                      <li key={i}>
+                        <strong>{q.question}</strong>
+                        <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '0.25rem' }}>
+                          {q.priority && `Priority: ${q.priority}`}
+                        </small>
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -199,13 +228,11 @@ function SessionDetailPage() {
         {/* Chat Section */}
         {currentSession.status === 'completed' && (
           <section className="section chat-section">
-            <h2>Ask Questions</h2>
+            <h2>Follow-Up Chat</h2>
 
             <div className="chat-messages">
               {messages.length === 0 ? (
-                <p className="chat-empty">
-                  Ask questions about the research findings
-                </p>
+                <p className="chat-empty">Ask questions about the research...</p>
               ) : (
                 messages.map((msg) => (
                   <div key={msg.id} className={`message message-${msg.role}`}>
@@ -221,11 +248,11 @@ function SessionDetailPage() {
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask a question about the research..."
+                placeholder="Ask a question about the research findings..."
                 disabled={loading}
               />
               <button type="submit" className="btn btn-primary" disabled={loading}>
-                Send
+                <Send size={18} />
               </button>
             </form>
           </section>

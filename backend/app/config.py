@@ -42,6 +42,11 @@ class Settings:
     RESEARCH_TIMEOUT: int = int(os.getenv("RESEARCH_TIMEOUT", "300"))
     WEB_SEARCH_ENABLED: bool = os.getenv("WEB_SEARCH_ENABLED", "True").lower() == "true"
     MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
+    
+    # Search Provider Configuration
+    SEARCH_PROVIDER: str = os.getenv("SEARCH_PROVIDER", "mock")  # tavily, brave, mock
+    SEARCH_API_KEY: str = os.getenv("SEARCH_API_KEY", "")
+    MAX_SEARCH_RESULTS: int = int(os.getenv("MAX_SEARCH_RESULTS", "10"))
 
     # Workflow Configuration
     WORKFLOW_TIMEOUT: int = int(os.getenv("WORKFLOW_TIMEOUT", "600"))

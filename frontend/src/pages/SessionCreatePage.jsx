@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../hooks';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import '../styles/pages.css';
 
 function SessionCreatePage() {
@@ -50,9 +51,15 @@ function SessionCreatePage() {
 
   return (
     <div className="page">
+      <button className="btn-back" onClick={() => navigate('/')} style={{ marginBottom: 'var(--spacing-xl)' }}>
+        <ArrowLeft size={20} />
+      </button>
+
       <div className="page-header">
-        <h1>Start New Research</h1>
-        <p>Begin your company research journey</p>
+        <div>
+          <h1>Start New Research</h1>
+          <p>Let AI help you prepare for your next important meeting</p>
+        </div>
       </div>
 
       <div className="form-container">
@@ -60,14 +67,17 @@ function SessionCreatePage() {
           {error && <div className="form-error">{error}</div>}
 
           <div className="form-group">
-            <label htmlFor="company_name">Company Name *</label>
+            <label htmlFor="company_name">
+              <Sparkles size={18} style={{ display: 'inline', marginRight: '0.5rem' }} />
+              Company Name <span style={{ color: 'var(--danger)' }}>*</span>
+            </label>
             <input
               type="text"
               id="company_name"
               name="company_name"
               value={formData.company_name}
               onChange={handleChange}
-              placeholder="e.g., Acme Corporation"
+              placeholder="e.g., Acme Corporation, TechStartup Inc."
               disabled={loading}
               required
             />
@@ -85,27 +95,39 @@ function SessionCreatePage() {
               placeholder="https://example.com"
               disabled={loading}
             />
-            <small>Optional - helps provide more context</small>
+            <small>Optional - helps provide more context and sources</small>
           </div>
 
           <div className="form-group">
-            <label htmlFor="research_objective">Research Objective *</label>
+            <label htmlFor="research_objective">
+              Research Objective <span style={{ color: 'var(--danger)' }}>*</span>
+            </label>
             <textarea
               id="research_objective"
               name="research_objective"
               value={formData.research_objective}
               onChange={handleChange}
-              placeholder="What do you want to learn about this company? E.g., 'Understand their product roadmap and market position for partnership discussion'"
+              placeholder="What do you want to learn about this company? E.g., 'Understand their product roadmap and market position for a partnership discussion' or 'Identify their pain points in customer success management'"
               rows={5}
               disabled={loading}
               required
             />
-            <small>Describe your research goals and what insights you need</small>
+            <small>Describe your research goals and what insights you need for your meeting</small>
           </div>
 
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Creating...' : 'Start Research'}
+              {loading ? (
+                <>
+                  <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></span>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Sparkles size={18} />
+                  Start Research
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -117,6 +139,26 @@ function SessionCreatePage() {
             </button>
           </div>
         </form>
+
+        {/* Info Box */}
+        <div
+          style={{
+            marginTop: 'var(--spacing-2xl)',
+            padding: 'var(--spacing-lg)',
+            background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.05), rgba(6, 182, 212, 0.05))',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+            fontSize: '0.9rem',
+          }}
+        >
+          <p style={{ margin: 0, marginBottom: 'var(--spacing-sm)' }}>
+            <strong>💡 Tip:</strong> The more specific your research objective, the better the insights.
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong>⏱️ Duration:</strong> Research typically takes 2-5 minutes depending on available data.
+          </p>
+        </div>
       </div>
     </div>
   );

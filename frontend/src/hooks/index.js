@@ -208,46 +208,6 @@ export const useChat = (sessionId) => {
   }, [sessionId]);
 
   // Send message
-  // const sendMessage = useCallback(
-  //   async (content) => {
-  //     if (!sessionId) {
-  //       setError('No session selected');
-  //       return;
-  //     }
-
-  //     setLoading(true);
-  //     try {
-  //       // Add user message optimistically
-  //       const userMessage = {
-  //         id: `temp-${Date.now()}`,
-  //         role: 'user',
-  //         content,
-  //         created_at: new Date().toISOString(),
-  //       };
-  //       setMessages((prev) => [...prev, userMessage]);
-
-  //       // Send to API
-  //       const response = await chatAPI.send(sessionId, content);
-
-  //       // Update with actual server response and add assistant message
-  //       setMessages((prev) => {
-  //         // Remove the temporary user message
-  //         const filtered = prev.filter((m) => m.id !== userMessage.id);
-  //         // Add the real user message and assistant response
-  //         return [...filtered, userMessage, response.data];
-  //       });
-  //     } catch (err) {
-  //       setError(err.message);
-  //       // Remove the optimistic message on error
-  //       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-  //       throw err;
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   },
-  //   [sessionId]
-  // );
-
   const sendMessage = useCallback(
     async (content) => {
       if (!sessionId) {

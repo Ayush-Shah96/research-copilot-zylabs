@@ -4,7 +4,6 @@ from datetime import datetime
 import logging
 import asyncio
 from app.workflows.states import ResearchState, WorkflowConfig, NODE_METADATA
-from app.workflows.nodes import WorkflowNodes
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,6 @@ class ResearchWorkflow:
     def __init__(self, config: Optional[WorkflowConfig] = None):
         """Initialize the workflow with configuration."""
         self.config = config or WorkflowConfig()
-        self.nodes = WorkflowNodes()
         self.execution_history: List[Dict[str, Any]] = []
         
     def should_route_to_retry(self, state: ResearchState) -> str:
@@ -78,12 +76,18 @@ class ResearchWorkflow:
         try:
             logger.info(f"Executing node: {node_name}")
             
-            # Get the node function
-            node_func = getattr(self.nodes, node_name)
+            # Import NODE_FUNCTIONS from nodes module
+            from app.workflows.nodes import NODE_FUNCTIONS
+            
+            # Get the node function from registry
+            node_func = NODE_FUNCTIONS.get(node_name)
+            if not node_func:
+                raise ValueError(f"Unknown node: {node_name}")
             
             # Execute node with timeout
             try:
-                node_timeout = NODE_METADATA.get(node_name, {}).get("timeout", 300)
+                metadata = NODE_METADATA.get(node_name)
+                node_timeout = metadata.timeout if metadata else 300
                 state = await asyncio.wait_for(
                     asyncio.to_thread(node_func, state, self.config),
                     timeout=node_timeout
