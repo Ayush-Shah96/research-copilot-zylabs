@@ -1,6 +1,6 @@
 """Configuration management for the application."""
 import os
-from typing import Optional
+from typing import Optional, List
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,7 +19,7 @@ class Settings:
     # Server Configuration
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", 8000))
-    CORS_ORIGINS: list = [
+    CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:8000",
         os.getenv("FRONTEND_URL", "http://localhost:3000"),
@@ -32,9 +32,9 @@ class Settings:
     )
     SQLALCHEMY_ECHO: bool = os.getenv("SQLALCHEMY_ECHO", "False").lower() == "true"
 
-    # LLM Configuration
+    # LLM Configuration - OpenRouter
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
-    OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "openai/gpt-4.1-mini")
+    OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "openai/gpt-4-mini")
     TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.7"))
     MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "2000"))
 

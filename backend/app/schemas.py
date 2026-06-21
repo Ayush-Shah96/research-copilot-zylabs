@@ -180,5 +180,29 @@ class HealthCheckResponse(BaseModel):
     llm_configured: bool
 
 
+# Add to ReportResponse class:
+
+class ReportResponse(BaseModel):
+    """Response containing generated report."""
+    id: str
+    session_id: str
+    company_overview: Optional[str]
+    products_services: Optional[str]
+    target_customers: Optional[str]
+    business_signals: Optional[str]
+    risks_challenges: Optional[str]
+    discovery_questions: Optional[List[DiscoveryQuestion]]
+    outreach_strategy: Optional[str]
+    unknowns: Optional[List[str]]
+    sources: Optional[List[str]]
+    quality_score: Optional[int]
+    confidence_score: Optional[float]
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    generated_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # Update forward references
 SessionDetailResponse.model_rebuild()

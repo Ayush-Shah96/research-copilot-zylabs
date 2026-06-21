@@ -1,323 +1,281 @@
-"""Citation formatting service for research sources."""
+"""Citation service for managing research sources and references."""
 import logging
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Set
+from datetime import datetime
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
 
 class Citation:
-    """Represents a research citation."""
+    """Represents a single citation/source."""
     
     def __init__(
         self,
-        title: str,
         url: str,
+        title: str = "",
+        source_type: str = "web",
         date: Optional[str] = None,
         author: Optional[str] = None,
-        source_type: str = "web",
     ):
         """
         Initialize a citation.
         
         Args:
-            title: Citation title
             url: Source URL
+            title: Source title
+            source_type: Type of source (web, news, academic, social_media)
             date: Publication date
-            author: Author name
-            source_type: Type of source (web, news, social, academic)
+            author: Author name if available
         """
-        self.title = title
         self.url = url
+        self.title = title
+        self.source_type = source_type
         self.date = date
         self.author = author
-        self.source_type = source_type
-
-    def to_dict(self) -> Dict[str, str]:
-        """Convert to dictionary."""
+        self.added_at = datetime.utcnow().isoformat()
+    
+    def to_dict(self) -> Dict[str, Optional[str]]:
+        """Convert citation to dictionary."""
         return {
-            "title": self.title,
             "url": self.url,
+            "title": self.title,
+            "source_type": self.source_type,
             "date": self.date,
             "author": self.author,
-            "source_type": self.source_type,
         }
-
-    def to_mla(self) -> str:
-        """Format citation in MLA style."""
-        if self.author:
-            citation = f"{self.author}. \"{self.title}.\" "
-        else:
-            citation = f"\"{self.title}.\" "
-        
-        # Extract domain from URL
-        domain = self._extract_domain(self.url)
-        citation += f"{domain}. "
-        
-        if self.date:
-            citation += f"Accessed {self.date}. "
-        
-        citation += f"<{self.url}>"
-        
-        return citation
-
-    def to_apa(self) -> str:
-        """Format citation in APA style."""
-        if self.author:
-            citation = f"{self.author}. "
-        else:
-            citation = ""
-        
-        citation += f"({self.date or 'n.d.'}). "
-        citation += f"{self.title}. Retrieved from {self.url}"
-        
-        return citation
-
-    def to_chicago(self) -> str:
-        """Format citation in Chicago style."""
-        if self.author:
-            citation = f"{self.author}. "
-        
-        citation += f"\"{self.title}.\" "
-        
-        # Extract domain
-        domain = self._extract_domain(self.url)
-        citation += f"Accessed {self.date or 'n.d.'}. {self.url}"
-        
-        return citation
-
-    def to_html(self) -> str:
-        """Format citation as HTML link."""
-        return f'<a href="{self.url}" target="_blank">{self.title}</a>'
-
-    def to_markdown(self) -> str:
-        """Format citation as Markdown link."""
-        return f"[{self.title}]({self.url})"
-
-    @staticmethod
-    def _extract_domain(url: str) -> str:
-        """Extract domain from URL."""
-        try:
-            parsed = urlparse(url)
-            domain = parsed.netloc or parsed.path
-            # Remove www. prefix if present
-            if domain.startswith("www."):
-                domain = domain[4:]
-            return domain
-        except Exception:
-            return url
+    
+    def __repr__(self) -> str:
+        return f"Citation(url={self.url[:50]}..., type={self.source_type})"
 
 
 class CitationService:
-    """Service for managing and formatting citations."""
-
+    """Service for managing citations and sources."""
+    
     def __init__(self):
         """Initialize citation service."""
-        self.citations: Dict[str, Citation] = {}
-        self.citation_count = 0
-
+        self.citations: Dict[str, Citation] = {}  # URL -> Citation mapping
+        self.url_deduplication: Set[str] = set()
+    
     def add_citation(
         self,
         url: str,
-        title: str,
+        title: str = "",
+        source_type: str = "web",
         date: Optional[str] = None,
         author: Optional[str] = None,
-        source_type: str = "web",
-    ) -> int:
+    ) -> None:
         """
-        Add a citation and get its reference number.
+        Add a citation to the collection.
         
         Args:
             url: Source URL
-            title: Citation title
+            title: Source title
+            source_type: Type of source
             date: Publication date
             author: Author name
-            source_type: Type of source
-            
-        Returns:
-            Citation reference number
         """
-        # Check if URL already exists
-        for ref_num, citation in self.citations.items():
-            if citation.url == url:
-                return int(ref_num)
+        if not url:
+            return
         
-        # Add new citation
-        self.citation_count += 1
-        ref_num = str(self.citation_count)
+        # Normalize URL for deduplication
+        normalized_url = self._normalize_url(url)
+        
+        if normalized_url in self.url_deduplication:
+            logger.debug(f"Citation already exists: {url}")
+            return
         
         citation = Citation(
-            title=title,
             url=url,
+            title=title,
+            source_type=source_type,
             date=date,
             author=author,
-            source_type=source_type,
         )
         
-        self.citations[ref_num] = citation
-        logger.info(f"Added citation {ref_num}: {title}")
+        self.citations[normalized_url] = citation
+        self.url_deduplication.add(normalized_url)
         
-        return self.citation_count
-
-    def add_citations_from_urls(self, urls: List[str]) -> List[int]:
+        logger.debug(f"Added citation: {title[:50] if title else 'Untitled'}")
+    
+    def add_citations_batch(self, citations: List[Dict[str, str]]) -> None:
         """
-        Add multiple citations from URLs.
+        Add multiple citations at once.
         
         Args:
-            urls: List of URLs to add
-            
-        Returns:
-            List of citation reference numbers
+            citations: List of citation dictionaries
         """
-        ref_numbers = []
-        for url in urls:
-            # Extract title from URL if possible
-            title = self._extract_title_from_url(url)
-            ref_num = self.add_citation(url, title)
-            ref_numbers.append(ref_num)
-        
-        return ref_numbers
-
-    def get_citation(self, ref_num: int) -> Optional[Citation]:
-        """
-        Get a citation by reference number.
-        
-        Args:
-            ref_num: Citation reference number
-            
-        Returns:
-            Citation object or None
-        """
-        return self.citations.get(str(ref_num))
-
-    def format_bibliography(self, style: str = "markdown") -> str:
-        """
-        Format all citations as a bibliography.
-        
-        Args:
-            style: Citation style (markdown, mla, apa, chicago, html)
-            
-        Returns:
-            Formatted bibliography
-        """
-        if not self.citations:
-            return "No sources cited."
-        
-        logger.info(f"Formatting bibliography with {len(self.citations)} citations in {style}")
-        
-        bibliography = []
-        
-        if style == "markdown":
-            bibliography.append("## Sources\n")
-            for ref_num in sorted(self.citations.keys(), key=int):
-                citation = self.citations[ref_num]
-                bibliography.append(f"{ref_num}. {citation.to_markdown()}")
-        
-        elif style == "mla":
-            bibliography.append("Works Cited\n")
-            for ref_num in sorted(self.citations.keys(), key=int):
-                citation = self.citations[ref_num]
-                bibliography.append(f"{citation.to_mla()}")
-        
-        elif style == "apa":
-            bibliography.append("References\n")
-            for ref_num in sorted(self.citations.keys(), key=int):
-                citation = self.citations[ref_num]
-                bibliography.append(f"{citation.to_apa()}")
-        
-        elif style == "chicago":
-            bibliography.append("Bibliography\n")
-            for ref_num in sorted(self.citations.keys(), key=int):
-                citation = self.citations[ref_num]
-                bibliography.append(f"{citation.to_chicago()}")
-        
-        elif style == "html":
-            bibliography.append("<div class='bibliography'><h2>Sources</h2><ul>")
-            for ref_num in sorted(self.citations.keys(), key=int):
-                citation = self.citations[ref_num]
-                bibliography.append(f"<li>{citation.to_html()}</li>")
-            bibliography.append("</ul></div>")
-        
-        return "\n".join(bibliography)
-
-    def get_citation_list(self) -> List[Dict[str, str]]:
-        """
-        Get all citations as a list of dictionaries.
-        
-        Returns:
-            List of citation dicts
-        """
-        return [
-            {
-                "ref_num": ref_num,
-                **citation.to_dict(),
-            }
-            for ref_num in sorted(self.citations.keys(), key=int)
-            for citation in [self.citations[ref_num]]
-        ]
-
+        for citation_data in citations:
+            self.add_citation(
+                url=citation_data.get("url", ""),
+                title=citation_data.get("title", ""),
+                source_type=citation_data.get("source_type", "web"),
+                date=citation_data.get("date"),
+                author=citation_data.get("author"),
+            )
+    
     def get_urls(self) -> List[str]:
         """
-        Get all citation URLs.
+        Get list of all source URLs.
         
         Returns:
             List of URLs
         """
-        return [citation.url for citation in self.citations.values()]
-
+        return list(self.citations.keys())
+    
+    def get_citations(self) -> List[Citation]:
+        """
+        Get all citations.
+        
+        Returns:
+            List of Citation objects
+        """
+        return list(self.citations.values())
+    
+    def get_citations_by_type(self, source_type: str) -> List[Citation]:
+        """
+        Get citations filtered by source type.
+        
+        Args:
+            source_type: Type of source to filter by
+            
+        Returns:
+            List of matching citations
+        """
+        return [
+            citation for citation in self.citations.values()
+            if citation.source_type == source_type
+        ]
+    
+    def get_formatted_citations(self, style: str = "markdown") -> str:
+        """
+        Get formatted citations.
+        
+        Args:
+            style: Citation style (markdown, html, apa, chicago)
+            
+        Returns:
+            Formatted citations string
+        """
+        if not self.citations:
+            return "No sources available."
+        
+        if style == "markdown":
+            return self._format_markdown()
+        elif style == "html":
+            return self._format_html()
+        elif style == "apa":
+            return self._format_apa()
+        else:
+            return self._format_plain()
+    
+    def _format_markdown(self) -> str:
+        """Format citations as markdown."""
+        lines = ["## Sources\n"]
+        
+        for i, citation in enumerate(self.get_citations(), 1):
+            line = f"{i}. [{citation.title or 'Untitled'}]({citation.url})"
+            
+            if citation.date:
+                line += f" - {citation.date}"
+            
+            if citation.source_type != "web":
+                line += f" ({citation.source_type})"
+            
+            lines.append(line)
+        
+        return "\n".join(lines)
+    
+    def _format_html(self) -> str:
+        """Format citations as HTML."""
+        lines = ["<div class='sources'><h3>Sources</h3><ol>"]
+        
+        for citation in self.get_citations():
+            lines.append(
+                f"<li><a href='{citation.url}' target='_blank'>"
+                f"{citation.title or 'Untitled'}</a>"
+            )
+            
+            if citation.date:
+                lines.append(f" - {citation.date}")
+            
+            if citation.source_type != "web":
+                lines.append(f" ({citation.source_type})")
+            
+            lines.append("</li>")
+        
+        lines.append("</ol></div>")
+        return "".join(lines)
+    
+    def _format_apa(self) -> str:
+        """Format citations as APA style."""
+        lines = []
+        
+        for citation in self.get_citations():
+            # Basic APA format: Author (Year). Title. Retrieved from URL
+            author = citation.author or "Unknown Author"
+            year = citation.date[:4] if citation.date else "n.d."
+            title = citation.title or "Untitled"
+            
+            apa_citation = f"{author} ({year}). {title}. Retrieved from {citation.url}"
+            lines.append(apa_citation)
+        
+        return "\n".join(lines)
+    
+    def _format_plain(self) -> str:
+        """Format citations as plain text."""
+        lines = ["Sources:\n"]
+        
+        for i, citation in enumerate(self.get_citations(), 1):
+            lines.append(f"{i}. {citation.title or 'Untitled'}")
+            lines.append(f"   URL: {citation.url}")
+            
+            if citation.date:
+                lines.append(f"   Date: {citation.date}")
+            
+            if citation.source_type != "web":
+                lines.append(f"   Type: {citation.source_type}")
+            
+            lines.append("")
+        
+        return "\n".join(lines)
+    
+    def _normalize_url(self, url: str) -> str:
+        """
+        Normalize URL for deduplication.
+        
+        Args:
+            url: URL to normalize
+            
+        Returns:
+            Normalized URL
+        """
+        # Remove trailing slashes and query parameters for comparison
+        parsed = urlparse(url)
+        normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        return normalized.rstrip("/").lower()
+    
+    def get_stats(self) -> Dict[str, int]:
+        """
+        Get citation statistics.
+        
+        Returns:
+            Dictionary with statistics
+        """
+        source_counts = {}
+        for citation in self.citations.values():
+            source_counts[citation.source_type] = source_counts.get(citation.source_type, 0) + 1
+        
+        return {
+            "total_citations": len(self.citations),
+            "unique_domains": len(set(
+                urlparse(c.url).netloc for c in self.citations.values()
+            )),
+            "by_source_type": source_counts,
+        }
+    
     def clear(self) -> None:
         """Clear all citations."""
         self.citations.clear()
-        self.citation_count = 0
-        logger.info("Cleared all citations")
-
-    @staticmethod
-    def _extract_title_from_url(url: str) -> str:
-        """
-        Extract a reasonable title from a URL.
-        
-        Args:
-            url: URL to extract title from
-            
-        Returns:
-            Extracted title
-        """
-        try:
-            parsed = urlparse(url)
-            
-            # Try to get domain name
-            domain = parsed.netloc.replace("www.", "").split(".")[0]
-            
-            # Try to get path
-            path = parsed.path.strip("/").split("/")[-1]
-            if path and path.endswith(".html"):
-                path = path[:-5]
-            
-            if path:
-                title = f"{domain.title()} - {path.replace('-', ' ').title()}"
-            else:
-                title = f"{domain.title()}"
-            
-            return title
-        except Exception:
-            return "Source"
-
-    @staticmethod
-    def create_citation_index(text: str, citations: List[str]) -> Tuple[str, Dict[int, str]]:
-        """
-        Create indexed citations in text.
-        
-        Args:
-            text: Text to add citations to
-            citations: List of citations to add
-            
-        Returns:
-            Tuple of (indexed text, citation mapping)
-        """
-        citation_map = {}
-        
-        for i, citation in enumerate(citations, 1):
-            text += f"\n[{i}] {citation}"
-            citation_map[i] = citation
-        
-        return text, citation_map
+        self.url_deduplication.clear()
+        logger.info("Citation service cleared")

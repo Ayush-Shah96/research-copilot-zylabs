@@ -1,7 +1,7 @@
 """SQLAlchemy database models."""
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import Column, String, Text, DateTime, Boolean, Integer, ForeignKey, JSON
+from sqlalchemy import Column, String, Text, DateTime, Boolean, Integer, ForeignKey, JSON, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import uuid
@@ -91,8 +91,13 @@ class ResearchReport(Base):
     
     # Report metadata
     quality_score = Column(Integer, nullable=True)  # 0-100
+    confidence_score = Column(Float, nullable=True)  # 0-1
     research_depth = Column(String(50), nullable=True)  # basic, intermediate, comprehensive
     generated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    
+    # Token usage
+    prompt_tokens = Column(Integer, default=0)
+    completion_tokens = Column(Integer, default=0)
     
     # Full report
     full_report = Column(JSON, nullable=True)
