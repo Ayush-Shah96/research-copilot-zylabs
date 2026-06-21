@@ -1,4 +1,4 @@
-"""Centralized OpenAI LLM service wrapper."""
+"""Centralized LLM service wrapper."""
 import logging
 from typing import Optional, Dict, List, Any
 from datetime import datetime
@@ -27,31 +27,30 @@ class LLMService:
     """Service for interacting with OpenAI API."""
 
     def __init__(self):
-        """Initialize the LLM service with OpenAI client."""
-        if not settings.OPENAI_API_KEY:
-            logger.warning("OPENAI_API_KEY not configured")
-        
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = settings.OPENAI_MODEL
+        """Initialize the LLM service."""
+    
+        if not settings.OPENROUTER_API_KEY:
+            logger.warning("OPENROUTER_API_KEY not configured")
+    
+        self.client = OpenAI(
+            api_key=settings.OPENROUTER_API_KEY,
+            base_url="https://openrouter.ai/api/v1",
+            default_headers={
+                "HTTP-Referer": "http://localhost:3000",
+                "X-Title": "ZyLabs AI Research Assistant",
+            },
+        )
+    
+        self.model = settings.OPENROUTER_MODEL
         self.temperature = settings.TEMPERATURE
         self.max_tokens = settings.MAX_TOKENS
         self.max_retries = settings.MAX_RETRIES
+    
         self.token_usage = {
             "total_prompt_tokens": 0,
             "total_completion_tokens": 0,
             "total_tokens": 0,
         }
-
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((
-            APIConnectionError,
-            RateLimitError,
-            Timeout,
-        )),
-        reraise=True,
-    )
     def _call_openai(
         self,
         messages: List[Dict[str, str]],

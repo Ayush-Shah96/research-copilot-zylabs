@@ -89,7 +89,7 @@ async def health_check() -> HealthCheckResponse:
         timestamp=datetime.utcnow(),
         version=settings.API_VERSION,
         database="connected",
-        llm_configured=bool(settings.OPENAI_API_KEY),
+        llm_configured=bool(settings.OPENROUTER_API_KEY),
     )
 
 
